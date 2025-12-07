@@ -4,31 +4,9 @@ import requests
 import time
 from typing import Dict, Any
 
-def get_access_token() -> str:
-    """
-    Получение access токена для GigaChat API
-    """
-    client_id = os.environ.get('GIGACHAT_CLIENT_ID', '')
-    client_secret = os.environ.get('GIGACHAT_CLIENT_SECRET', '')
-    
-    url = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
-    
-    response = requests.post(
-        url,
-        headers={'Content-Type': 'application/x-www-form-urlencoded'},
-        data={'scope': 'GIGACHAT_API_PERS'},
-        auth=(client_id, client_secret),
-        verify=False
-    )
-    
-    if response.status_code != 200:
-        raise Exception(f'Failed to get token: {response.text}')
-    
-    return response.json()['access_token']
-
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Обработчик запросов к GigaChat для школьных задач
+    Обработчик запросов к YandexGPT (Алиса AI) для школьных задач
     Принимает сообщение пользователя и возвращает ответ от AI
     """
     method: str = event.get('httpMethod', 'POST')
@@ -74,7 +52,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
-        access_token = get_access_token()
+        api_key = os.environ.get('YANDEX_API_KEY', '')
+        folder_id = os.environ.get('YANDEX_FOLDER_ID', '')
         
         system_prompts = {
             'solve': f'Ты - школьный помощник по предмету {subject}. Объясняй решения подробно и пошагово, как учитель для школьника. Используй простой язык.',
@@ -84,26 +63,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         system_prompt = system_prompts.get(task_type, system_prompts['solve'])
         
-        url = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions'
+        url = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion'
         
         payload = {
-            'model': 'GigaChat',
+            'modelUri': f'gpt://{folder_id}/yandexgpt-lite',
+            'completionOptions': {
+                'stream': False,
+                'temperature': 0.6,
+                'maxTokens': 2000
+            },
             'messages': [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_message}
-            ],
-            'temperature': 0.7,
-            'max_tokens': 2000
+                {'role': 'system', 'text': system_prompt},
+                {'role': 'user', 'text': user_message}
+            ]
         }
         
         response = requests.post(
             url,
             headers={
-                'Authorization': f'Bearer {access_token}',
+                'Authorization': f'Api-Key {api_key}',
                 'Content-Type': 'application/json'
             },
-            json=payload,
-            verify=False
+            json=payload
         )
         
         if response.status_code != 200:
@@ -113,12 +94,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': f'GigaChat API error: {response.text}'}),
+                'body': json.dumps({'error': f'YandexGPT API error: {response.text}'}),
                 'isBase64Encoded': False
             }
         
         result = response.json()
-        ai_response = result['choices'][0]['message']['content']
+        ai_response = result['result']['alternatives'][0]['message']['text']
         
         return {
             'statusCode': 200,
