@@ -8,8 +8,8 @@ def get_access_token() -> str:
     """
     Получение access токена для GigaChat API
     """
-    client_id = os.environ['GIGACHAT_CLIENT_ID']
-    client_secret = os.environ['GIGACHAT_CLIENT_SECRET']
+    client_id = os.environ.get('GIGACHAT_CLIENT_ID', '')
+    client_secret = os.environ.get('GIGACHAT_CLIENT_SECRET', '')
     
     url = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
     
