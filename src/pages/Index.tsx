@@ -3,11 +3,12 @@ import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Message {
   id: string;
@@ -16,31 +17,35 @@ interface Message {
   timestamp: Date;
 }
 
-interface ChatHistory {
+interface TaskHistory {
   id: string;
   title: string;
+  subject: string;
   date: Date;
+  type: 'math' | 'essay' | 'test';
 }
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState<'chat' | 'history' | 'settings' | 'profile'>('chat');
+  const [activeTab, setActiveTab] = useState<'solve' | 'essay' | 'test' | 'history'>('solve');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Привет! Я MegaChat — ваш AI-ассистент. Чем могу помочь?',
+      text: 'Привет! Я MegaChat — твой школьный помощник. Помогу решить задачу, написать сочинение или подготовиться к контрольной!',
       sender: 'ai',
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [temperature, setTemperature] = useState([0.7]);
-  const [maxTokens, setMaxTokens] = useState([2000]);
-  const [responseStyle, setResponseStyle] = useState('balanced');
+  const [selectedSubject, setSelectedSubject] = useState('math');
+  const [essayTheme, setEssayTheme] = useState('');
+  const [essayType, setEssayType] = useState('argument');
+  const [testSubject, setTestSubject] = useState('math');
+  const [testTopic, setTestTopic] = useState('');
 
-  const chatHistory: ChatHistory[] = [
-    { id: '1', title: 'Вопросы по программированию', date: new Date(2024, 11, 5) },
-    { id: '2', title: 'Планирование проекта', date: new Date(2024, 11, 4) },
-    { id: '3', title: 'Анализ данных', date: new Date(2024, 11, 3) },
+  const taskHistory: TaskHistory[] = [
+    { id: '1', title: 'Квадратные уравнения', subject: 'Математика', date: new Date(2024, 11, 6), type: 'math' },
+    { id: '2', title: 'Сочинение: Война и мир', subject: 'Литература', date: new Date(2024, 11, 5), type: 'essay' },
+    { id: '3', title: 'Контрольная по физике', subject: 'Физика', date: new Date(2024, 11, 4), type: 'test' },
   ];
 
   const handleSendMessage = () => {
@@ -59,7 +64,7 @@ const Index = () => {
     setTimeout(() => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Это демонстрационный ответ. В реальной версии здесь будет ответ от AI-модели на основе ваших настроек.',
+        text: 'Отлично! Давай разберём твою задачу по шагам. В реальной версии здесь будет подробное решение с объяснениями.',
         sender: 'ai',
         timestamp: new Date()
       };
@@ -67,27 +72,54 @@ const Index = () => {
     }, 1000);
   };
 
-  const renderChatContent = () => (
+  const renderSolveContent = () => (
     <div className="flex flex-col h-full">
-      <div className="border-b border-border p-4">
-        <h2 className="text-xl font-semibold text-foreground">MegaChat</h2>
-        <p className="text-sm text-muted-foreground">Настраиваемый AI-ассистент</p>
+      <div className="border-b border-border p-6 bg-accent/50">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+            <Icon name="Calculator" size={24} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Решение задач</h2>
+            <p className="text-sm text-muted-foreground">Помогу разобраться с любым предметом</p>
+          </div>
+        </div>
+        <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="math">📐 Математика</SelectItem>
+            <SelectItem value="physics">⚛️ Физика</SelectItem>
+            <SelectItem value="chemistry">🧪 Химия</SelectItem>
+            <SelectItem value="russian">📖 Русский язык</SelectItem>
+            <SelectItem value="english">🇬🇧 Английский язык</SelectItem>
+            <SelectItem value="history">🏛️ История</SelectItem>
+            <SelectItem value="biology">🌿 Биология</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-4xl mx-auto">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+              className={`flex gap-3 animate-fade-in ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
             >
-              <Avatar className={message.sender === 'ai' ? 'bg-primary' : 'bg-secondary'}>
-                <AvatarFallback className="text-white">
-                  {message.sender === 'ai' ? 'AI' : 'Вы'}
-                </AvatarFallback>
-              </Avatar>
-              <Card className={`p-4 max-w-[80%] ${message.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
-                <p className="text-sm">{message.text}</p>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                message.sender === 'ai' ? 'bg-primary' : 'bg-secondary'
+              }`}>
+                <span className="text-white font-semibold text-sm">
+                  {message.sender === 'ai' ? '🤖' : '👤'}
+                </span>
+              </div>
+              <Card className={`p-4 max-w-[75%] ${
+                message.sender === 'user' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-card border-2 border-primary/20'
+              }`}>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
                 <p className="text-xs mt-2 opacity-70">
                   {message.timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -97,43 +129,246 @@ const Index = () => {
         </div>
       </ScrollArea>
 
-      <div className="border-t border-border p-4">
-        <div className="flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Введите сообщение..."
-            className="flex-1"
-          />
-          <Button onClick={handleSendMessage} size="icon" className="hover-scale">
-            <Icon name="Send" size={20} />
-          </Button>
+      <div className="border-t border-border p-4 bg-background">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex gap-2">
+            <Textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder="Напиши условие задачи или вопрос..."
+              className="min-h-[60px] resize-none"
+            />
+            <Button onClick={handleSendMessage} size="icon" className="h-[60px] w-[60px] hover-scale">
+              <Icon name="Send" size={24} />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            💡 Совет: Опиши задачу подробно и укажи, что нужно найти
+          </p>
         </div>
       </div>
     </div>
   );
 
+  const renderEssayContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="border-b border-border p-6 bg-accent/50">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+            <Icon name="FileText" size={24} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Сочинения</h2>
+            <p className="text-sm text-muted-foreground">Помогу написать сочинение на любую тему</p>
+          </div>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1 p-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Тип сочинения</Label>
+            <Tabs value={essayType} onValueChange={setEssayType} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="argument">Рассуждение</TabsTrigger>
+                <TabsTrigger value="description">Описание</TabsTrigger>
+                <TabsTrigger value="narrative">Повествование</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </Card>
+
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Предмет</Label>
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="literature">📚 Литература</SelectItem>
+                <SelectItem value="russian">📝 Русский язык</SelectItem>
+                <SelectItem value="english">🇬🇧 Английский язык</SelectItem>
+                <SelectItem value="history">🏛️ История</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Тема сочинения</Label>
+            <Textarea
+              value={essayTheme}
+              onChange={(e) => setEssayTheme(e.target.value)}
+              placeholder='Например: "Образ Печорина в романе Герой нашего времени"'
+              className="min-h-[100px]"
+            />
+          </Card>
+
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Дополнительные требования</Label>
+            <Textarea
+              placeholder="Укажи объём, ключевые моменты, которые нужно раскрыть..."
+              className="min-h-[100px]"
+            />
+          </Card>
+
+          <Button className="w-full h-12 text-base hover-scale" size="lg">
+            <Icon name="Sparkles" size={20} className="mr-2" />
+            Создать сочинение
+          </Button>
+
+          <Card className="p-4 bg-primary/10 border-primary/30">
+            <div className="flex gap-3">
+              <Icon name="Info" size={20} className="text-primary flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Структура сочинения:</p>
+                <p>• Вступление с тезисом</p>
+                <p>• Основная часть с аргументами</p>
+                <p>• Заключение с выводами</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  const renderTestContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="border-b border-border p-6 bg-accent/50">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+            <Icon name="ClipboardCheck" size={24} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Контрольные работы</h2>
+            <p className="text-sm text-muted-foreground">Подготовлю тесты и задания для проверки знаний</p>
+          </div>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1 p-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Предмет</Label>
+            <Select value={testSubject} onValueChange={setTestSubject}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="math">📐 Математика</SelectItem>
+                <SelectItem value="physics">⚛️ Физика</SelectItem>
+                <SelectItem value="chemistry">🧪 Химия</SelectItem>
+                <SelectItem value="russian">📖 Русский язык</SelectItem>
+                <SelectItem value="biology">🌿 Биология</SelectItem>
+                <SelectItem value="history">🏛️ История</SelectItem>
+                <SelectItem value="geography">🌍 География</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Тема контрольной</Label>
+            <Input
+              value={testTopic}
+              onChange={(e) => setTestTopic(e.target.value)}
+              placeholder="Например: Квадратные уравнения, Периодическая система..."
+            />
+          </Card>
+
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Уровень сложности</Label>
+            <Tabs defaultValue="medium" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="easy">Базовый</TabsTrigger>
+                <TabsTrigger value="medium">Средний</TabsTrigger>
+                <TabsTrigger value="hard">Сложный</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </Card>
+
+          <Card className="p-6">
+            <Label className="text-base font-semibold mb-3 block">Количество заданий</Label>
+            <div className="grid grid-cols-4 gap-3">
+              {[5, 10, 15, 20].map(num => (
+                <Button key={num} variant="outline" className="h-12">
+                  {num}
+                </Button>
+              ))}
+            </div>
+          </Card>
+
+          <Button className="w-full h-12 text-base hover-scale" size="lg">
+            <Icon name="FileCheck" size={20} className="mr-2" />
+            Создать контрольную
+          </Button>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="p-4 bg-primary/5 border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon name="CheckCircle" size={18} className="text-primary" />
+                <h4 className="font-medium">Что включено</h4>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Задания разных типов</li>
+                <li>• Правильные ответы</li>
+                <li>• Критерии оценки</li>
+              </ul>
+            </Card>
+            <Card className="p-4 bg-primary/5 border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon name="Target" size={18} className="text-primary" />
+                <h4 className="font-medium">Формат заданий</h4>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Тесты с выбором</li>
+                <li>• Задачи с решением</li>
+                <li>• Открытые вопросы</li>
+              </ul>
+            </Card>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
   const renderHistoryContent = () => (
     <div className="flex flex-col h-full">
-      <div className="border-b border-border p-4">
-        <h2 className="text-xl font-semibold text-foreground">История диалогов</h2>
+      <div className="border-b border-border p-6 bg-accent/50">
+        <h2 className="text-2xl font-bold text-foreground mb-1">История заданий</h2>
+        <p className="text-sm text-muted-foreground">Все твои решённые задачи и работы</p>
       </div>
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-3">
-          {chatHistory.map((chat) => (
-            <Card key={chat.id} className="p-4 hover-scale cursor-pointer transition-all hover:shadow-md">
+      <ScrollArea className="flex-1 p-6">
+        <div className="max-w-4xl mx-auto space-y-3">
+          {taskHistory.map((task) => (
+            <Card key={task.id} className="p-5 hover-scale cursor-pointer transition-all hover:shadow-lg hover:border-primary/40">
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <Icon name="MessageSquare" size={20} className="text-primary mt-1" />
-                  <div>
-                    <h3 className="font-medium text-foreground">{chat.title}</h3>
+                <div className="flex items-start gap-4 flex-1">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    task.type === 'math' ? 'bg-blue-100 text-blue-600' :
+                    task.type === 'essay' ? 'bg-purple-100 text-purple-600' :
+                    'bg-green-100 text-green-600'
+                  }`}>
+                    <Icon 
+                      name={task.type === 'math' ? 'Calculator' : task.type === 'essay' ? 'FileText' : 'ClipboardCheck'} 
+                      size={24} 
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-foreground text-lg">{task.title}</h3>
+                      <Badge variant="outline" className="text-xs">{task.subject}</Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground">
-                      {chat.date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {task.date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
-                <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
+                <Icon name="ChevronRight" size={24} className="text-muted-foreground" />
               </div>
             </Card>
           ))}
@@ -142,184 +377,30 @@ const Index = () => {
     </div>
   );
 
-  const renderSettingsContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="border-b border-border p-4">
-        <h2 className="text-xl font-semibold text-foreground">Настройки модели</h2>
-        <p className="text-sm text-muted-foreground">Настройте поведение AI под ваши задачи</p>
-      </div>
-      <ScrollArea className="flex-1 p-6">
-        <div className="space-y-8 max-w-2xl">
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Температура ({temperature[0]})</Label>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Контролирует креативность ответов. Низкие значения — более точные ответы, высокие — более творческие.
-                </p>
-                <Slider
-                  value={temperature}
-                  onValueChange={setTemperature}
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>Точные (0)</span>
-                  <span>Креативные (2)</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Максимальная длина ответа ({maxTokens[0]} токенов)</Label>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Определяет максимальную длину генерируемого ответа.
-                </p>
-                <Slider
-                  value={maxTokens}
-                  onValueChange={setMaxTokens}
-                  min={100}
-                  max={4000}
-                  step={100}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>Короткие (100)</span>
-                  <span>Длинные (4000)</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Стиль ответов</Label>
-              <p className="text-sm text-muted-foreground mb-4">
-                Выберите стиль общения AI-ассистента.
-              </p>
-              <Select value={responseStyle} onValueChange={setResponseStyle}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="concise">Краткий — минимум слов</SelectItem>
-                  <SelectItem value="balanced">Сбалансированный — оптимальная детализация</SelectItem>
-                  <SelectItem value="detailed">Детальный — подробные объяснения</SelectItem>
-                  <SelectItem value="technical">Технический — для специалистов</SelectItem>
-                  <SelectItem value="simple">Простой — доступный язык</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-accent">
-            <div className="flex gap-3">
-              <Icon name="Lightbulb" size={24} className="text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-medium mb-2">Настройка под задачи</h3>
-                <p className="text-sm text-muted-foreground">
-                  Для кодирования: температура 0.2-0.5, стиль технический.
-                  <br />
-                  Для творчества: температура 1.0-1.5, стиль детальный.
-                  <br />
-                  Для анализа: температура 0.3-0.7, стиль сбалансированный.
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </ScrollArea>
-    </div>
-  );
-
-  const renderProfileContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="border-b border-border p-4">
-        <h2 className="text-xl font-semibold text-foreground">Профиль</h2>
-      </div>
-      <ScrollArea className="flex-1 p-6">
-        <div className="space-y-6 max-w-2xl">
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="w-20 h-20 bg-primary">
-                <AvatarFallback className="text-2xl text-white">МЧ</AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="text-xl font-semibold">MegaChat Пользователь</h3>
-                <p className="text-sm text-muted-foreground">megachat@example.com</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="font-medium mb-4">Статистика использования</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-accent rounded-lg">
-                <span className="text-sm">Всего диалогов</span>
-                <span className="font-semibold text-primary">24</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-accent rounded-lg">
-                <span className="text-sm">Сообщений отправлено</span>
-                <span className="font-semibold text-primary">156</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-accent rounded-lg">
-                <span className="text-sm">Токенов использовано</span>
-                <span className="font-semibold text-primary">45,230</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="font-medium mb-4">Настройки аккаунта</h3>
-            <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <Icon name="Key" size={18} className="mr-2" />
-                Изменить пароль
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Icon name="Bell" size={18} className="mr-2" />
-                Уведомления
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Icon name="Globe" size={18} className="mr-2" />
-                Язык интерфейса
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </ScrollArea>
-    </div>
-  );
-
   const renderContent = () => {
     switch (activeTab) {
-      case 'chat':
-        return renderChatContent();
+      case 'solve':
+        return renderSolveContent();
+      case 'essay':
+        return renderEssayContent();
+      case 'test':
+        return renderTestContent();
       case 'history':
         return renderHistoryContent();
-      case 'settings':
-        return renderSettingsContent();
-      case 'profile':
-        return renderProfileContent();
     }
   };
 
   return (
     <div className="flex h-screen bg-background">
-      <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+      <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col">
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Icon name="Sparkles" size={24} className="text-white" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <Icon name="GraduationCap" size={28} className="text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">MegaChat</h1>
-              <p className="text-xs text-muted-foreground">AI Assistant</p>
+              <p className="text-xs text-muted-foreground">Школьный помощник</p>
             </div>
           </div>
         </div>
@@ -327,31 +408,36 @@ const Index = () => {
         <nav className="flex-1 p-4">
           <div className="space-y-2">
             {[
-              { id: 'chat', label: 'Чат', icon: 'MessageSquare' },
-              { id: 'history', label: 'История', icon: 'Clock' },
-              { id: 'settings', label: 'Настройки', icon: 'Settings' },
-              { id: 'profile', label: 'Профиль', icon: 'User' },
+              { id: 'solve', label: 'Решение задач', icon: 'Calculator', color: 'bg-blue-500/10 text-blue-600' },
+              { id: 'essay', label: 'Сочинения', icon: 'FileText', color: 'bg-purple-500/10 text-purple-600' },
+              { id: 'test', label: 'Контрольные', icon: 'ClipboardCheck', color: 'bg-green-500/10 text-green-600' },
+              { id: 'history', label: 'История', icon: 'Clock', color: 'bg-orange-500/10 text-orange-600' },
             ].map((item) => (
               <Button
                 key={item.id}
                 variant={activeTab === item.id ? 'default' : 'ghost'}
-                className="w-full justify-start transition-all"
+                className={`w-full justify-start transition-all h-11 ${
+                  activeTab !== item.id ? 'hover:bg-accent' : ''
+                }`}
                 onClick={() => setActiveTab(item.id as any)}
               >
                 <Icon name={item.icon as any} size={20} className="mr-3" />
-                {item.label}
+                <span className="font-medium">{item.label}</span>
               </Button>
             ))}
           </div>
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
-          <Card className="p-3 bg-accent">
-            <div className="flex items-start gap-2">
-              <Icon name="Info" size={16} className="text-primary mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-muted-foreground">
-                Настройте модель под свои задачи в разделе настроек
-              </p>
+        <div className="p-4 border-t border-sidebar-border space-y-3">
+          <Card className="p-4 bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/20">
+            <div className="flex items-start gap-3">
+              <Icon name="Lightbulb" size={20} className="text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-sm mb-1">Подсказка</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Чем подробнее опишешь задачу, тем точнее будет решение!
+                </p>
+              </div>
             </div>
           </Card>
         </div>
