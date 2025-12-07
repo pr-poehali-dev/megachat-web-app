@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test auth with Google provider",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "provider": "google",
+        "userData": {
+          "id": "123456789",
+          "email": "test@example.com",
+          "name": "Test User"
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "token": "string",
+        "user": {
+          "id": "string",
+          "email": "string",
+          "name": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

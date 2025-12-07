@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test POST with message",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": "Реши уравнение x^2 = 4",
+        "taskType": "solve",
+        "subject": "math"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "response": "string",
+        "timestamp": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AuthModal from '@/components/AuthModal';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface Message {
   id: string;
@@ -41,6 +43,24 @@ const Index = () => {
   const [essayType, setEssayType] = useState('argument');
   const [testSubject, setTestSubject] = useState('math');
   const [testTopic, setTestTopic] = useState('');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('megachat_user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      setIsAuthModalOpen(true);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('megachat_token');
+    localStorage.removeItem('megachat_user');
+    setUser(null);
+    setIsAuthModalOpen(true);
+  };
 
   const taskHistory: TaskHistory[] = [
     { id: '1', title: 'Квадратные уравнения', subject: 'Математика', date: new Date(2024, 11, 6), type: 'math' },
@@ -48,7 +68,7 @@ const Index = () => {
     { id: '3', title: 'Контрольная по физике', subject: 'Физика', date: new Date(2024, 11, 4), type: 'test' },
   ];
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = {
@@ -59,17 +79,61 @@ const Index = () => {
     };
 
     setMessages([...messages, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
 
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Отлично! Давай разберём твою задачу по шагам. В реальной версии здесь будет подробное решение с объяснениями.',
+    const loadingMessage: Message = {
+      id: 'loading',
+      text: '🤔 Думаю...',
+      sender: 'ai',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/1aaf2af2-58db-4ecb-b209-9c8a827b76e3', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          taskType: activeTab,
+          subject: selectedSubject
+        })
+      });
+
+      const data = await response.json();
+      
+      setMessages(prev => prev.filter(m => m.id !== 'loading'));
+
+      if (response.ok && data.response) {
+        const aiMessage: Message = {
+          id: Date.now().toString(),
+          text: data.response,
+          sender: 'ai',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          text: `Ошибка: ${data.error || 'Не удалось получить ответ'}. Проверь, что добавлены ключи GigaChat в настройках проекта.`,
+          sender: 'ai',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      setMessages(prev => prev.filter(m => m.id !== 'loading'));
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: 'Ошибка подключения к AI. Проверь интернет-соединение.',
         sender: 'ai',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   const renderSolveContent = () => (
@@ -429,6 +493,39 @@ const Index = () => {
         </nav>
 
         <div className="p-4 border-t border-sidebar-border space-y-3">
+          {user ? (
+            <Card className="p-4 bg-accent/50">
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar className="w-10 h-10 bg-primary">
+                  <AvatarFallback className="text-white font-semibold">
+                    {user.name?.charAt(0) || 'У'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={handleLogout}
+              >
+                <Icon name="LogOut" size={16} className="mr-2" />
+                Выйти
+              </Button>
+            </Card>
+          ) : (
+            <Button 
+              className="w-full"
+              onClick={() => setIsAuthModalOpen(true)}
+            >
+              <Icon name="LogIn" size={18} className="mr-2" />
+              Войти
+            </Button>
+          )}
+          
           <Card className="p-4 bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/20">
             <div className="flex items-start gap-3">
               <Icon name="Lightbulb" size={20} className="text-primary flex-shrink-0 mt-0.5" />
@@ -446,6 +543,12 @@ const Index = () => {
       <div className="flex-1 flex flex-col">
         {renderContent()}
       </div>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={(userData) => setUser(userData)}
+      />
     </div>
   );
 };
